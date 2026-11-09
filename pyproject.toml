@@ -1,0 +1,16 @@
+[project]
+name = "medical-rag"
+version = "0.1.0"
+description = "Intelligent Longitudinal Medical Record Analysis and Evidence-Grounded Clinical RAG"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]

@@ -1,0 +1,7 @@
+# Runtime dependencies - Milestone 1 (API foundation only).
+# Later milestones add PyMuPDF, pytesseract/Pillow, SQLAlchemy/Alembic,
+# psycopg, pandas/NumPy, sentence-transformers, faiss-cpu, etc.
+fastapi>=0.115,<1.0
+uvicorn>=0.30,<1.0
+pydantic>=2.8,<3.0
+pydantic-settings>=2.4,<3.0
