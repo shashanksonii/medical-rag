@@ -4,7 +4,7 @@ Status legend: `[x]` implemented and verified, `[~]` in progress, `[ ]` not star
 
 - [x] **Milestone 1 - Project foundation** (repo structure, dependencies, FastAPI app, config, logging, `/health`, tests, README)
 - [x] **Milestone 2 - Document ingestion** (PyMuPDF, Tesseract OCR + Pillow, page-level provenance)
-- [ ] Milestone 3 - Structured extraction (Pydantic schemas, parsing, normalisation, validation, evaluation script)
+- [~] **Milestone 3 - Structured extraction** (Pydantic schemas, parsing, normalisation, validation, evaluation script) - implemented; tick `[x]` after local verification
 - [ ] Milestone 4 - Database (PostgreSQL, SQLAlchemy, Alembic, repositories, endpoints)
 - [ ] Milestone 5 - Longitudinal analysis (descriptive trends, insufficient-data handling)
 - [ ] Milestone 6 - General medical knowledge retrieval (chunking, embeddings, FAISS)
@@ -37,3 +37,29 @@ Status legend: `[x]` implemented and verified, `[~]` in progress, `[ ]` not star
 
 `IngestedDocument.pages[i].clean_text` (and `.lines` with bounding boxes), plus `document_id`,
 `patient_id`, `filename`, `sha256`, `page_number`, `method` and `ocr_confidence` as provenance.
+
+## Documented defaults (Milestone 3)
+
+| Decision | Choice | Reason |
+|---|---|---|
+| Extraction approach | Rule-based (regex + Pydantic), no LLM | Deterministic and testable; an LLM must never invent missing values. Ollama arrives in Milestone 8. |
+| New dependencies | None | Standard library + Pydantic are enough. |
+| Table cells | Split on two or more spaces | Matches the Milestone 2 column-gap convention. A single-line fallback handles `Hemoglobin: 13.2 g/dL (12.0-16.0)` and OCR output that lost its gaps. |
+| Numeric dates | Day/month/year (`12/08/2026` = 12 August) | Indian convention. `date_order="MDY"` is available. Impossible dates become `None`; the order is never swapped silently. |
+| Which date | Collection date > report date > other labelled date | Collection date is when the sample was taken. Conflicting dates in the best group -> `ambiguous_date`, no date chosen. |
+| Comparison operators | Kept in `value_operator` (`<5` -> 5 with `<`) | Dropping the operator changes the meaning. |
+| Reference ranges | Only as printed; one-sided ranges fill one side | Never insert a "standard" range. |
+| Units | Spelling normalised only (`g/dl` -> `g/dL`, `/cumm` -> `/µL`) | No unit conversion in this milestone - conversions are a source of silent errors. |
+| H/L flags | Stored as printed (`abnormal_flag_as_printed`) | We never calculate normal/abnormal ourselves. |
+| Plausibility limits | Very wide physical limits per test+unit | Only to catch reading errors (lost decimal point). Not clinical ranges. |
+| Validation result | `valid` / `needs_review` / `invalid` + flag codes | Problems are reported, never auto-corrected. |
+| Observation ID | Hash of document ID + page + line | Re-running extraction gives the same IDs. |
+
+## Handed to Milestone 4
+
+`app.extraction.extract_observations(doc) -> ExtractionResult`, whose `observations` are
+`Observation` models (see `app/extraction/schemas.py`) with patient/document IDs, original and
+normalised test names, value/operator/text, units, reference range, observation date and its
+source, page/line/evidence provenance, flags and `validation_status`. Suggested rule for storage:
+store every observation with its status and flags, but only use `valid` ones for trends and answers
+unless a person has reviewed the others. A `patient_id_mismatch` flag must never be ignored.

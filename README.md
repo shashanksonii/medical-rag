@@ -15,7 +15,7 @@ are compared in a controlled experiment, in English, Hindi and Hinglish.
 
 ## Status
 
-Milestones 1 (project foundation) and 2 (document ingestion) are implemented. See
+Milestones 1 (project foundation), 2 (document ingestion) and 3 (structured extraction) are implemented. See
 [docs/MILESTONES.md](docs/MILESTONES.md) for the full checklist.
 
 ## Technology stack (locked)
@@ -39,14 +39,21 @@ medical-rag/
 │   │   ├── config.py        # typed settings (MEDRAG_* env vars / .env)
 │   │   ├── logging.py       # idempotent logging setup
 │   │   └── middleware.py    # request IDs + request logging
-│   └── ingestion/           # Milestone 2
-│       ├── service.py       # ingest_file() / ingest_bytes() - the entry point
-│       ├── pdf_extractor.py # PyMuPDF text layer + per-page OCR fallback
-│       ├── ocr.py           # Tesseract engine, image loading/preparation
-│       ├── layout.py        # words -> table-preserving text rows
-│       ├── preprocessing.py # number/unit-safe text cleanup
-│       ├── schemas.py       # IngestedDocument / PageText / TextLine
-│       └── errors.py        # typed errors with stable codes
+│   ├── ingestion/           # Milestone 2
+│   │   ├── service.py       # ingest_file() / ingest_bytes() - the entry point
+│   │   ├── pdf_extractor.py # PyMuPDF text layer + per-page OCR fallback
+│   │   ├── ocr.py           # Tesseract engine, image loading/preparation
+│   │   ├── layout.py        # words -> table-preserving text rows
+│   │   ├── preprocessing.py # number/unit-safe text cleanup
+│   │   ├── schemas.py       # IngestedDocument / PageText / TextLine
+│   │   └── errors.py        # typed errors with stable codes
+│   └── extraction/          # Milestone 3
+│       ├── service.py       # extract_observations() - the entry point
+│       ├── parser.py        # table rows, single-line results, dates, patient IDs
+│       ├── normalizer.py    # test-name aliases and unit spellings
+│       ├── validator.py     # checks -> flags -> valid / needs_review / invalid
+│       ├── evaluators.py    # precision/recall/F1 and accuracy against ground truth
+│       └── schemas.py       # Observation / ExtractionResult
 ├── data/
 │   ├── synthetic_reports/   # synthetic test reports (later milestones)
 │   ├── curated_knowledge/   # curated medical knowledge base (later milestones)
@@ -162,6 +169,37 @@ marking column gaps. Cleaning never changes digits, decimal points, dates, signs
 Tesseract settings). The pipeline never "corrects" text; it records a per-page confidence and warns
 when it is low. Structured extraction (Milestone 3) must validate values, and the research
 evaluation (Milestone 10) measures OCR-induced errors.
+
+## Try structured extraction (Milestone 3)
+
+```powershell
+python -m scripts.extract_file data\synthetic_reports\sample_digital.pdf --patient-id P001
+python -m scripts.extract_file data\synthetic_reports\sample_report.png --patient-id P001 --json obs.json
+
+# Evaluation on the synthetic ground-truth set (precision, recall, F1, numeric/unit/date accuracy)
+python -m scripts.make_extraction_dataset
+python -m scripts.evaluate_extraction            # add --skip-ocr if Tesseract is not installed
+```
+
+From Python:
+
+```python
+from app.ingestion import ingest_file
+from app.extraction import extract_observations
+
+result = extract_observations(ingest_file("report.pdf", patient_id="P001"))
+for obs in result.observations:
+    print(obs.test_name_normalized, obs.value, obs.normalized_unit, obs.validation_status.value)
+```
+
+Each table row becomes an `Observation` with the original and normalised test name, the value
+(keeping operators such as `<5` and text results such as `Negative`), unit, the printed reference
+range, the observation date (collection date preferred, `DD/MM/YYYY` by default), and provenance
+(page, line and the exact source line). Every observation is validated: problems such as a missing
+unit, an unrecognised test, a conflicting date, a patient-ID mismatch or a value that is physically
+implausible (for example a lost decimal point) are listed in `flags`, and `validation_status` is
+`valid`, `needs_review` or `invalid`. Nothing is guessed or auto-corrected. Add test-name spellings in
+`app/extraction/normalizer.py` (`TEST_ALIASES`).
 
 ## Run the tests and lint checks
 
