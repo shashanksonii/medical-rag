@@ -133,7 +133,7 @@ address from the command line. To use a different port, run
 - Logs contain method, path, status, duration and a request ID - never request bodies, query
   strings or report text. Keep it that way in later milestones.
 - Patient identifiers must be pseudonymous (for example `P001`).
-- `.env` is git-ignored; never commit credentials.
+- `.env` is git-ignored; never commit credentials..
 
 ## Git
 
