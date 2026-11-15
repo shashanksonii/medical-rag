@@ -2,6 +2,7 @@
 
 Final-year B.Tech CSE project (Delhi Technological University).
 
+
 A Python-first, CPU-friendly system that ingests medical reports, extracts structured
 observations with provenance, analyses repeated measurements descriptively over time, and
 answers questions with evidence from both a patient's own history and a curated medical
