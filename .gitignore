@@ -38,3 +38,5 @@ data/uploads/
 *.faiss
 data/indexes/
 results/
+
+out.json
