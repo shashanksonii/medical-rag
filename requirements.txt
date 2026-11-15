@@ -1,7 +1,16 @@
-# Runtime dependencies - Milestone 1 (API foundation only).
-# Later milestones add PyMuPDF, pytesseract/Pillow, SQLAlchemy/Alembic,
-# psycopg, pandas/NumPy, sentence-transformers, faiss-cpu, etc.
+# Runtime dependencies.
+# Milestone 1: API foundation
 fastapi>=0.115,<1.0
 uvicorn>=0.30,<1.0
 pydantic>=2.8,<3.0
 pydantic-settings>=2.4,<3.0
+
+# Milestone 2: document ingestion
+# NOTE: PyMuPDF 2.x pulls in onnxruntime, networkx, pymupdf-layout, etc. We only
+# need the core 1.x library, so it is pinned below 2.
+PyMuPDF>=1.26,<2
+Pillow>=10.1          # ImageFont.load_default(size=...) is used by the test fixtures
+pytesseract>=0.3.10   # thin wrapper; the Tesseract program itself is installed separately
+
+# Later milestones add SQLAlchemy/Alembic/psycopg, pandas/NumPy,
+# sentence-transformers, faiss-cpu, scikit-learn, matplotlib, etc.
